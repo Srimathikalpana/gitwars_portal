@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitWars Portal - Login</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1>GitWars</h1>
+            <p class="subtitle">Enter your credentials to continue</p>
+            
+            <!-- Error Message Area -->
+            <div id="error-message" class="error-message"></div>
+            
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        placeholder="Enter your username"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                
+                <button type="submit" id="login-btn" class="btn btn-primary">
+                    Login
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Auth Script -->
+    <script type="module">
+        import { initLoginPage } from "./js/auth.js";
+        
+        // Initialize login page when DOM is ready
+        document.addEventListener("DOMContentLoaded", initLoginPage);
+    </script>
+</body>
+</html>

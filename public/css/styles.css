@@ -1,0 +1,294 @@
+/**
+ * styles.css
+ * Main stylesheet for GitWars Portal
+ * 
+ * Dark theme with minimal styling
+ */
+
+/* ========================
+   RESET & BASE STYLES
+======================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+/* ========================
+   LAYOUT CONTAINERS
+======================== */
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ========================
+   HEADER STYLES
+======================== */
+header {
+    background-color: #1a1a1a;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #ffd700;
+}
+
+header h1 {
+    color: #ffd700;
+    font-size: 1.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-info span {
+    color: #888;
+}
+
+.username {
+    color: #ffd700 !important;
+    font-weight: bold;
+}
+
+/* ========================
+   LOGIN PAGE STYLES
+======================== */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+.login-box {
+    background-color: #1a1a1a;
+    padding: 3rem;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.login-box h1 {
+    color: #ffd700;
+    text-align: center;
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.login-box .subtitle {
+    color: #888;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #333;
+    background-color: #222;
+    color: #e0e0e0;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #ffd700;
+}
+
+.form-group input::placeholder {
+    color: #666;
+}
+
+/* ========================
+   BUTTON STYLES
+======================== */
+.btn {
+    display: inline-block;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-primary {
+    background-color: #ffd700;
+    color: #121212;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #e6c200;
+}
+
+.btn-primary:disabled {
+    background-color: #666;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.btn-logout {
+    background-color: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.btn-logout:hover {
+    background-color: #444;
+}
+
+/* ========================
+   ERROR MESSAGE STYLES
+======================== */
+.error-message {
+    background-color: rgba(220, 53, 69, 0.2);
+    border: 1px solid #dc3545;
+    color: #ff6b6b;
+    padding: 0.8rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.error-message.visible {
+    display: block;
+}
+
+/* ========================
+   MAIN CONTENT STYLES
+======================== */
+main {
+    flex: 1;
+    padding: 2rem;
+}
+
+.dashboard-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.welcome-message {
+    background-color: #1a1a1a;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.welcome-message h2 {
+    color: #ffd700;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-message p {
+    color: #888;
+}
+
+/* ========================
+   PLACEHOLDER SECTIONS
+======================== */
+.placeholder-section {
+    background-color: #1a1a1a;
+    padding: 3rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px dashed #333;
+}
+
+.placeholder-section h3 {
+    color: #555;
+    margin-bottom: 0.5rem;
+}
+
+.placeholder-section p {
+    color: #444;
+    font-size: 0.9rem;
+}
+
+/* ========================
+   ROLE BADGE STYLES
+======================== */
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.role-admin {
+    background-color: rgba(255, 215, 0, 0.2);
+    color: #ffd700;
+    border: 1px solid #ffd700;
+}
+
+.role-public {
+    background-color: rgba(77, 166, 255, 0.2);
+    color: #4da6ff;
+    border: 1px solid #4da6ff;
+}
+
+/* ========================
+   FOOTER STYLES
+======================== */
+footer {
+    background-color: #1a1a1a;
+    padding: 1rem 2rem;
+    text-align: center;
+    color: #555;
+    font-size: 0.8rem;
+    border-top: 1px solid #333;
+}

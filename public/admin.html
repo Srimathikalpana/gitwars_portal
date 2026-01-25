@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitWars Portal - Admin Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <h1>GitWars Admin</h1>
+                <div class="user-info">
+                    <span>Logged in as: <span id="username-display" class="username"></span></span>
+                    <span class="role-badge role-admin">ADMIN</span>
+                    <button id="logout-btn" class="btn btn-logout">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <div class="dashboard-content">
+                <!-- Welcome Message -->
+                <div class="welcome-message">
+                    <h2>Admin Dashboard</h2>
+                    <p>Welcome to the GitWars administration panel.</p>
+                </div>
+
+                <!-- Placeholder for future features -->
+                <div class="placeholder-section">
+                    <h3>Coming Soon</h3>
+                    <p>Leaderboard management, team creation, and scoring features will be added in future phases.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>GitWars Portal &copy; 2026</p>
+        </footer>
+    </div>
+
+    <!-- Page Script -->
+    <script type="module">
+        import { protectPage, getUsername, clearSession } from "./js/utils.js";
+        
+        // Protect this page - only ADMIN role can access
+        document.addEventListener("DOMContentLoaded", () => {
+            // Check page protection
+            if (!protectPage("ADMIN")) {
+                return; // Will redirect to login
+            }
+            
+            // Display username
+            const usernameDisplay = document.getElementById("username-display");
+            if (usernameDisplay) {
+                usernameDisplay.textContent = getUsername();
+            }
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById("logout-btn");
+            if (logoutBtn) {
+                logoutBtn.addEventListener("click", () => {
+                    clearSession();
+                    window.location.href = "login.html";
+                });
+            }
+            
+            console.log("Admin dashboard initialized.");
+        });
+    </script>
+</body>
+</html>
