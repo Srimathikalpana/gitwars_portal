@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitWars Portal - Public View</title>
+    <title>GitWars Portal - Public Leaderboard</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- Header -->
         <header>
             <div class="header-content">
-                <h1>GitWars</h1>
+                <h1>GitWars Leaderboard</h1>
                 <div class="user-info">
                     <span>Viewing as: <span id="username-display" class="username"></span></span>
                     <span class="role-badge role-public">PUBLIC</span>
@@ -23,17 +23,88 @@
         <!-- Main Content -->
         <main>
             <div class="dashboard-content">
-                <!-- Welcome Message -->
-                <div class="welcome-message">
-                    <h2>Public Leaderboard</h2>
-                    <p>View the live GitWars competition standings.</p>
+                
+                <!-- View Toggle Buttons -->
+                <div class="view-toggle-section">
+                    <button type="button" id="btn-class-view" class="view-toggle-btn active">Class View</button>
+                    <button type="button" id="btn-overall-view" class="view-toggle-btn">Overall View</button>
                 </div>
 
-                <!-- Placeholder for future features -->
-                <div class="placeholder-section">
-                    <h3>Coming Soon</h3>
-                    <p>The public leaderboard view will be added in future phases.</p>
-                </div>
+                <!-- Class View (Default) -->
+                <section id="class-view" class="leaderboard-section">
+                    <!-- Class Selector -->
+                    <div class="class-selector">
+                        <label for="class-dropdown">Select Class:</label>
+                        <select id="class-dropdown">
+                            <option value="1">Class 1</option>
+                            <option value="2">Class 2</option>
+                            <option value="3">Class 3</option>
+                        </select>
+                    </div>
+
+                    <!-- Side-by-Side Leaderboards -->
+                    <div class="dual-leaderboard">
+                        <!-- JEDI Leaderboard -->
+                        <div class="leaderboard-panel jedi-panel">
+                            <h2 class="panel-title jedi-title">JEDI</h2>
+                            <table class="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-rank">Rank</th>
+                                        <th class="col-team-name">Team Name</th>
+                                        <th class="col-score">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="jedi-leaderboard-body">
+                                    <tr class="empty-row">
+                                        <td colspan="3">No JEDI teams</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- SITH Leaderboard -->
+                        <div class="leaderboard-panel sith-panel">
+                            <h2 class="panel-title sith-title">SITH</h2>
+                            <table class="leaderboard-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-rank">Rank</th>
+                                        <th class="col-team-name">Team Name</th>
+                                        <th class="col-score">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="sith-leaderboard-body">
+                                    <tr class="empty-row">
+                                        <td colspan="3">No SITH teams</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Overall View (Hidden by default) -->
+                <section id="overall-view" class="leaderboard-section hidden">
+                    <h2 class="overall-title">Overall Leaderboard</h2>
+                    <table class="leaderboard-table overall-table">
+                        <thead>
+                            <tr>
+                                <th class="col-rank">Rank</th>
+                                <th class="col-team-name">Team Name</th>
+                                <th class="col-class">Class</th>
+                                <th class="col-role">Role</th>
+                                <th class="col-score">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="overall-leaderboard-body">
+                            <tr class="empty-row">
+                                <td colspan="5">No teams registered</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
             </div>
         </main>
 
@@ -46,10 +117,192 @@
     <!-- Page Script -->
     <script type="module">
         import { protectPage, getUsername, clearSession } from "./js/utils.js";
+        import { subscribeToTeams } from "./js/teams.js";
         
-        // Protect this page - only PUBLIC role can access
-        document.addEventListener("DOMContentLoaded", () => {
-            // Check page protection
+        // State
+        let allTeams = [];
+        let currentView = "class"; // "class" or "overall"
+        let selectedClass = 1;
+        
+        // DOM Elements
+        const btnClassView = document.getElementById("btn-class-view");
+        const btnOverallView = document.getElementById("btn-overall-view");
+        const classView = document.getElementById("class-view");
+        const overallView = document.getElementById("overall-view");
+        const classDropdown = document.getElementById("class-dropdown");
+        const jediLeaderboardBody = document.getElementById("jedi-leaderboard-body");
+        const sithLeaderboardBody = document.getElementById("sith-leaderboard-body");
+        const overallLeaderboardBody = document.getElementById("overall-leaderboard-body");
+        
+        /**
+         * Sort teams by score (descending)
+         */
+        function sortByScore(teams) {
+            return [...teams].sort((a, b) => b.score - a.score);
+        }
+        
+        /**
+         * Render the Class View leaderboards (JEDI vs SITH)
+         */
+        function renderClassView() {
+            // Filter teams by selected class
+            const classTeams = allTeams.filter(team => team.class === selectedClass);
+            
+            // Separate JEDI and SITH
+            const jediTeams = sortByScore(classTeams.filter(team => team.role === "JEDI"));
+            const sithTeams = sortByScore(classTeams.filter(team => team.role === "SITH"));
+            
+            // Render JEDI leaderboard
+            renderLeaderboardPanel(jediLeaderboardBody, jediTeams, "JEDI");
+            
+            // Render SITH leaderboard
+            renderLeaderboardPanel(sithLeaderboardBody, sithTeams, "SITH");
+        }
+        
+        /**
+         * Render a single leaderboard panel (JEDI or SITH)
+         */
+        function renderLeaderboardPanel(tbody, teams, role) {
+            tbody.innerHTML = "";
+            
+            if (teams.length === 0) {
+                tbody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="3">No ${role} teams in Class ${selectedClass}</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            teams.forEach((team, index) => {
+                const row = document.createElement("tr");
+                row.className = "leaderboard-row";
+                
+                row.innerHTML = `
+                    <td class="col-rank">${index + 1}</td>
+                    <td class="col-team-name">${team.teamName}</td>
+                    <td class="col-score">${team.score}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        /**
+         * Render the Overall View leaderboard
+         */
+        function renderOverallView() {
+            overallLeaderboardBody.innerHTML = "";
+            
+            // Sort all teams by score
+            const sortedTeams = sortByScore(allTeams);
+            
+            if (sortedTeams.length === 0) {
+                overallLeaderboardBody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="5">No teams registered</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            sortedTeams.forEach((team, index) => {
+                const row = document.createElement("tr");
+                row.className = "leaderboard-row";
+                
+                const roleClass = team.role === "JEDI" ? "role-jedi" : "role-sith";
+                
+                row.innerHTML = `
+                    <td class="col-rank">${index + 1}</td>
+                    <td class="col-team-name">${team.teamName}</td>
+                    <td class="col-class">${team.class}</td>
+                    <td class="col-role ${roleClass}">${team.role}</td>
+                    <td class="col-score">${team.score}</td>
+                `;
+                
+                overallLeaderboardBody.appendChild(row);
+            });
+        }
+        
+        /**
+         * Render the appropriate view based on current state
+         */
+        function renderLeaderboard() {
+            if (currentView === "class") {
+                renderClassView();
+            } else {
+                renderOverallView();
+            }
+        }
+        
+        /**
+         * Switch to Class View
+         */
+        function showClassView() {
+            currentView = "class";
+            
+            // Update toggle buttons
+            btnClassView.classList.add("active");
+            btnOverallView.classList.remove("active");
+            
+            // Show/hide sections
+            classView.classList.remove("hidden");
+            overallView.classList.add("hidden");
+            
+            renderClassView();
+        }
+        
+        /**
+         * Switch to Overall View
+         */
+        function showOverallView() {
+            currentView = "overall";
+            
+            // Update toggle buttons
+            btnOverallView.classList.add("active");
+            btnClassView.classList.remove("active");
+            
+            // Show/hide sections
+            overallView.classList.remove("hidden");
+            classView.classList.add("hidden");
+            
+            renderOverallView();
+        }
+        
+        /**
+         * Handle class dropdown change
+         */
+        function handleClassChange() {
+            selectedClass = parseInt(classDropdown.value, 10);
+            renderClassView();
+        }
+        
+        /**
+         * Setup event listeners
+         */
+        function setupEventListeners() {
+            // View toggle buttons
+            btnClassView.addEventListener("click", showClassView);
+            btnOverallView.addEventListener("click", showOverallView);
+            
+            // Class dropdown
+            classDropdown.addEventListener("change", handleClassChange);
+            
+            // Logout button
+            const logoutBtn = document.getElementById("logout-btn");
+            if (logoutBtn) {
+                logoutBtn.addEventListener("click", () => {
+                    clearSession();
+                    window.location.href = "login.html";
+                });
+            }
+        }
+        
+        /**
+         * Initialize public page
+         */
+        function initPublicPage() {
+            // Check page protection - only PUBLIC role can access
             if (!protectPage("PUBLIC")) {
                 return; // Will redirect to login
             }
@@ -60,17 +313,20 @@
                 usernameDisplay.textContent = getUsername();
             }
             
-            // Setup logout button
-            const logoutBtn = document.getElementById("logout-btn");
-            if (logoutBtn) {
-                logoutBtn.addEventListener("click", () => {
-                    clearSession();
-                    window.location.href = "login.html";
-                });
-            }
+            // Setup event listeners
+            setupEventListeners();
             
-            console.log("Public view initialized.");
-        });
+            // Subscribe to real-time team updates
+            subscribeToTeams((teams) => {
+                allTeams = teams;
+                renderLeaderboard();
+            });
+            
+            console.log("Public leaderboard initialized.");
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener("DOMContentLoaded", initPublicPage);
     </script>
 </body>
 </html>
