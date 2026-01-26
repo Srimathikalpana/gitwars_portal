@@ -14,7 +14,10 @@ import {
     getDocs, 
     addDoc, 
     onSnapshot, 
-    orderBy 
+    orderBy,
+    doc,
+    updateDoc,
+    getDoc
 } from "./firebase.js";
 
 // Module state
@@ -166,4 +169,139 @@ export function unsubscribeFromTeams() {
  */
 export function getAllTeams() {
     return [...allTeams];
+}
+
+/* =========================
+   SCORE UPDATE FUNCTIONS
+========================= */
+
+/**
+ * Update a team's score in Firestore
+ * @param {string} teamId - The Firestore document ID of the team
+ * @param {number} scoreChange - The amount to add (positive) or subtract (negative)
+ * @returns {Promise<Object>} - Result object with success status
+ */
+export async function updateTeamScore(teamId, scoreChange) {
+    try {
+        // Validate inputs
+        if (!teamId) {
+            return { success: false, error: "Team ID is required." };
+        }
+        
+        if (typeof scoreChange !== 'number' || isNaN(scoreChange)) {
+            return { success: false, error: "Score change must be a valid number." };
+        }
+        
+        // Get current team data
+        const teamRef = doc(db, "teams", teamId);
+        const teamSnap = await getDoc(teamRef);
+        
+        if (!teamSnap.exists()) {
+            return { success: false, error: "Team not found." };
+        }
+        
+        const currentScore = teamSnap.data().score || 0;
+        let newScore = currentScore + scoreChange;
+        
+        // Ensure score doesn't go below 0
+        if (newScore < 0) {
+            newScore = 0;
+        }
+        
+        // Update Firestore
+        await updateDoc(teamRef, { score: newScore });
+        
+        console.log(`Team ${teamId}: Score updated from ${currentScore} to ${newScore} (change: ${scoreChange})`);
+        
+        return { 
+            success: true, 
+            previousScore: currentScore,
+            newScore: newScore,
+            actualChange: newScore - currentScore
+        };
+        
+    } catch (error) {
+        console.error("Error updating team score:", error);
+        return { success: false, error: "Failed to update score. Please try again." };
+    }
+}
+
+/**
+ * Add Round 1 (Code Charades) score to a team
+ * Score calculation: timeLeft * 2
+ * @param {string} teamId - The Firestore document ID of the team
+ * @param {number} timeLeft - Time remaining in seconds
+ * @returns {Promise<Object>} - Result object with success status
+ */
+export async function addRound1Score(teamId, timeLeft) {
+    // Validate timeLeft
+    if (typeof timeLeft !== 'number' || isNaN(timeLeft) || timeLeft < 0) {
+        return { success: false, error: "Time left must be a non-negative number." };
+    }
+    
+    // Calculate score: timeLeft * 2
+    const scoreToAdd = timeLeft * 2;
+    
+    const result = await updateTeamScore(teamId, scoreToAdd);
+    
+    if (result.success) {
+        return {
+            ...result,
+            round: 1,
+            timeLeft: timeLeft,
+            pointsAdded: scoreToAdd
+        };
+    }
+    
+    return result;
+}
+
+/**
+ * Add Round 2 (Cup Round) score to a team
+ * @param {string} teamId - The Firestore document ID of the team
+ * @param {number} cupPoints - Points to add (can be positive or negative)
+ * @returns {Promise<Object>} - Result object with success status
+ */
+export async function addRound2Score(teamId, cupPoints) {
+    // Validate cupPoints
+    if (typeof cupPoints !== 'number' || isNaN(cupPoints)) {
+        return { success: false, error: "Cup points must be a valid number." };
+    }
+    
+    const result = await updateTeamScore(teamId, cupPoints);
+    
+    if (result.success) {
+        return {
+            ...result,
+            round: 2,
+            pointsAdded: cupPoints
+        };
+    }
+    
+    return result;
+}
+
+/**
+ * Reduce a team's score
+ * @param {string} teamId - The Firestore document ID of the team
+ * @param {number} amount - Amount to reduce (positive number)
+ * @returns {Promise<Object>} - Result object with success status
+ */
+export async function reduceScore(teamId, amount) {
+    // Validate amount
+    if (typeof amount !== 'number' || isNaN(amount) || amount < 0) {
+        return { success: false, error: "Reduction amount must be a non-negative number." };
+    }
+    
+    // Reduce by negating the amount
+    const result = await updateTeamScore(teamId, -amount);
+    
+    if (result.success) {
+        return {
+            ...result,
+            pointsReduced: Math.abs(result.actualChange)
+        };
+    }
+    
+    return result;
 }

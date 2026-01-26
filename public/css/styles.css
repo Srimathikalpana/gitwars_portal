@@ -544,3 +544,151 @@ footer {
     border-color: #ff4d4d;
     color: #fff;
 }
+
+/* ========================
+   SCORE ACTIONS STYLES
+======================== */
+.teams-table-scoring {
+    table-layout: fixed;
+}
+
+.teams-table-scoring .col-number {
+    width: 70px;
+}
+
+.teams-table-scoring .col-name {
+    width: 150px;
+}
+
+.teams-table-scoring .col-class {
+    width: 60px;
+}
+
+.teams-table-scoring .col-role {
+    width: 70px;
+}
+
+.teams-table-scoring .col-score {
+    width: 80px;
+}
+
+.teams-table-scoring .col-actions {
+    width: auto;
+}
+
+.score-display {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #ffd700;
+}
+
+.score-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.score-action-group {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.score-action-group label {
+    font-size: 0.75rem;
+    color: #888;
+    white-space: nowrap;
+}
+
+.score-input {
+    width: 60px;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid #444;
+    background-color: #2a2a2a;
+    color: #e0e0e0;
+    border-radius: 3px;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.score-input:focus {
+    outline: none;
+    border-color: #ffd700;
+}
+
+.score-input::placeholder {
+    color: #555;
+    font-size: 0.75rem;
+}
+
+/* Remove number input spinners */
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.score-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.btn-score {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid #555;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.btn-score:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-round1 {
+    background-color: #2d5a27;
+    color: #7dff6a;
+    border-color: #3d7a37;
+}
+
+.btn-round1:hover:not(:disabled) {
+    background-color: #3d7a37;
+}
+
+.btn-round2 {
+    background-color: #1a4a6e;
+    color: #6ac3ff;
+    border-color: #2a6a9e;
+}
+
+.btn-round2:hover:not(:disabled) {
+    background-color: #2a6a9e;
+}
+
+.btn-reduce {
+    background-color: #5a2727;
+    color: #ff6a6a;
+    border-color: #7a3737;
+}
+
+.btn-reduce:hover:not(:disabled) {
+    background-color: #7a3737;
+}
+
+/* Score feedback */
+.score-feedback {
+    font-size: 0.8rem;
+    font-weight: bold;
+    min-width: 80px;
+}
+
+.feedback-success {
+    color: #4caf50;
+}
+
+.feedback-error {
+    color: #ff6b6b;
+}

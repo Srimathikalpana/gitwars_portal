@@ -119,7 +119,7 @@
                     </div>
                     
                     <div class="table-container">
-                        <table class="teams-table">
+                        <table class="teams-table teams-table-scoring">
                             <thead>
                                 <tr>
                                     <th class="col-number">Team #</th>
@@ -127,12 +127,13 @@
                                     <th class="col-class">Class</th>
                                     <th class="col-role">Role</th>
                                     <th class="col-score">Score</th>
+                                    <th class="col-actions">Score Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="teams-table-body">
                                 <!-- Team rows will be inserted here -->
                                 <tr class="empty-row">
-                                    <td colspan="5">No teams added yet.</td>
+                                    <td colspan="6">No teams added yet.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -150,7 +151,7 @@
     <!-- Page Script -->
     <script type="module">
         import { protectPage, getUsername, clearSession } from "./js/utils.js";
-        import { addTeam, checkTeamNameExists, subscribeToTeams, getAllTeams } from "./js/teams.js";
+        import { addTeam, checkTeamNameExists, subscribeToTeams, getAllTeams, addRound1Score, addRound2Score, reduceScore } from "./js/teams.js";
         
         // Debounce timer for name validation
         let nameCheckTimer = null;
@@ -221,7 +222,7 @@
             if (filteredTeams.length === 0) {
                 teamsTableBody.innerHTML = `
                     <tr class="empty-row">
-                        <td colspan="5">${allTeamsCache.length === 0 ? 'No teams added yet.' : 'No teams match the current filters.'}</td>
+                        <td colspan="6">${allTeamsCache.length === 0 ? 'No teams added yet.' : 'No teams match the current filters.'}</td>
                     </tr>
                 `;
                 return;
@@ -229,6 +230,7 @@
             
             filteredTeams.forEach(team => {
                 const row = document.createElement("tr");
+                row.className = "team-row";
                 
                 // Add role-based styling
                 const roleClass = team.role === "JEDI" ? "role-jedi" : "role-sith";
@@ -238,7 +240,31 @@
                     <td class="col-name">${team.teamName}</td>
                     <td class="col-class">${team.class}</td>
                     <td class="col-role ${roleClass}">${team.role}</td>
-                    <td class="col-score">${team.score}</td>
+                    <td class="col-score score-display">${team.score}</td>
+                    <td class="col-actions">
+                        <div class="score-actions" data-team-id="${team.id}" data-team-name="${team.teamName}">
+                            <!-- Round 1: Code Charades -->
+                            <div class="score-action-group">
+                                <label>R1 Time Left:</label>
+                                <input type="number" class="score-input input-round1" min="0" placeholder="sec">
+                                <button type="button" class="btn-score btn-round1">+R1</button>
+                            </div>
+                            <!-- Round 2: Cup Round -->
+                            <div class="score-action-group">
+                                <label>R2 Points:</label>
+                                <input type="number" class="score-input input-round2" placeholder="pts">
+                                <button type="button" class="btn-score btn-round2">+R2</button>
+                            </div>
+                            <!-- Reduce Score -->
+                            <div class="score-action-group">
+                                <label>Reduce:</label>
+                                <input type="number" class="score-input input-reduce" min="0" placeholder="pts">
+                                <button type="button" class="btn-score btn-reduce">−</button>
+                            </div>
+                            <!-- Inline feedback -->
+                            <span class="score-feedback"></span>
+                        </div>
+                    </td>
                 `;
                 
                 teamsTableBody.appendChild(row);
@@ -279,6 +305,114 @@
             if (filterControls) {
                 filterControls.addEventListener('click', handleFilterClick);
             }
+        }
+        
+        /**
+         * Show inline feedback for score actions
+         */
+        function showScoreFeedback(feedbackEl, message, isSuccess) {
+            feedbackEl.textContent = message;
+            feedbackEl.className = `score-feedback ${isSuccess ? 'feedback-success' : 'feedback-error'}`;
+            
+            // Auto-hide after 2 seconds
+            setTimeout(() => {
+                feedbackEl.textContent = '';
+                feedbackEl.className = 'score-feedback';
+            }, 2000);
+        }
+        
+        /**
+         * Handle score action button clicks
+         */
+        async function handleScoreAction(event) {
+            const btn = event.target.closest('.btn-score');
+            if (!btn) return;
+            
+            const actionsContainer = btn.closest('.score-actions');
+            const teamId = actionsContainer.dataset.teamId;
+            const teamName = actionsContainer.dataset.teamName;
+            const feedbackEl = actionsContainer.querySelector('.score-feedback');
+            
+            // Disable button during processing
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = '...';
+            
+            let result;
+            
+            try {
+                if (btn.classList.contains('btn-round1')) {
+                    // Round 1: Code Charades
+                    const input = actionsContainer.querySelector('.input-round1');
+                    const timeLeft = parseFloat(input.value);
+                    
+                    if (isNaN(timeLeft) || timeLeft < 0) {
+                        showScoreFeedback(feedbackEl, 'Invalid time (must be ≥ 0)', false);
+                        return;
+                    }
+                    
+                    result = await addRound1Score(teamId, timeLeft);
+                    
+                    if (result.success) {
+                        showScoreFeedback(feedbackEl, `+${result.pointsAdded} pts`, true);
+                        input.value = '';
+                    } else {
+                        showScoreFeedback(feedbackEl, result.error, false);
+                    }
+                    
+                } else if (btn.classList.contains('btn-round2')) {
+                    // Round 2: Cup Round
+                    const input = actionsContainer.querySelector('.input-round2');
+                    const cupPoints = parseFloat(input.value);
+                    
+                    if (isNaN(cupPoints)) {
+                        showScoreFeedback(feedbackEl, 'Invalid points', false);
+                        return;
+                    }
+                    
+                    result = await addRound2Score(teamId, cupPoints);
+                    
+                    if (result.success) {
+                        const sign = result.pointsAdded >= 0 ? '+' : '';
+                        showScoreFeedback(feedbackEl, `${sign}${result.pointsAdded} pts`, true);
+                        input.value = '';
+                    } else {
+                        showScoreFeedback(feedbackEl, result.error, false);
+                    }
+                    
+                } else if (btn.classList.contains('btn-reduce')) {
+                    // Reduce Score
+                    const input = actionsContainer.querySelector('.input-reduce');
+                    const amount = parseFloat(input.value);
+                    
+                    if (isNaN(amount) || amount < 0) {
+                        showScoreFeedback(feedbackEl, 'Invalid amount (must be ≥ 0)', false);
+                        return;
+                    }
+                    
+                    result = await reduceScore(teamId, amount);
+                    
+                    if (result.success) {
+                        showScoreFeedback(feedbackEl, `-${result.pointsReduced} pts`, true);
+                        input.value = '';
+                    } else {
+                        showScoreFeedback(feedbackEl, result.error, false);
+                    }
+                }
+            } catch (error) {
+                console.error('Score action error:', error);
+                showScoreFeedback(feedbackEl, 'Error updating score', false);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+        
+        /**
+         * Setup score action handlers using event delegation
+         */
+        function setupScoreActions() {
+            teamsTableBody.addEventListener('click', handleScoreAction);
         }
         
         /**
@@ -434,6 +568,9 @@
             
             // Setup filter buttons
             setupFilterButtons();
+            
+            // Setup score action handlers
+            setupScoreActions();
             
             // Subscribe to team updates
             subscribeToTeams((teams) => {
