@@ -29,11 +29,115 @@
                     <p>Welcome to the GitWars administration panel.</p>
                 </div>
 
-                <!-- Placeholder for future features -->
-                <div class="placeholder-section">
-                    <h3>Coming Soon</h3>
-                    <p>Leaderboard management, team creation, and scoring features will be added in future phases.</p>
-                </div>
+                <!-- Team Entry Form -->
+                <section class="team-form-section">
+                    <h3>Add New Team</h3>
+                    
+                    <!-- Success/Error Messages -->
+                    <div id="form-success-message" class="success-message"></div>
+                    <div id="form-error-message" class="error-message"></div>
+                    
+                    <form id="team-form">
+                        <div class="form-row">
+                            <!-- Team Number (Auto-generated) -->
+                            <div class="form-group form-group-small">
+                                <label for="team-number">Team #</label>
+                                <input 
+                                    type="text" 
+                                    id="team-number" 
+                                    readonly 
+                                    placeholder="Auto"
+                                    class="input-readonly"
+                                >
+                            </div>
+                            
+                            <!-- Team Name -->
+                            <div class="form-group form-group-large">
+                                <label for="team-name">Team Name</label>
+                                <input 
+                                    type="text" 
+                                    id="team-name" 
+                                    placeholder="Enter unique team name"
+                                    autocomplete="off"
+                                    required
+                                >
+                                <span id="name-status" class="name-status"></span>
+                            </div>
+                            
+                            <!-- Class Dropdown -->
+                            <div class="form-group form-group-small">
+                                <label for="team-class">Class</label>
+                                <select id="team-class" required>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Role Dropdown -->
+                            <div class="form-group form-group-small">
+                                <label for="team-role">Role</label>
+                                <select id="team-role" required>
+                                    <option value="JEDI">JEDI</option>
+                                    <option value="SITH">SITH</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Submit Button -->
+                            <div class="form-group form-group-button">
+                                <button type="submit" id="add-team-btn" class="btn btn-primary" disabled>
+                                    Add Team
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Team List Table -->
+                <section class="team-table-section">
+                    <h3>All Teams <span id="team-count" class="team-count">(0)</span></h3>
+                    
+                    <!-- Filter Toggle Buttons -->
+                    <div class="filter-controls">
+                        <div class="filter-group">
+                            <span class="filter-label">Class:</span>
+                            <div class="toggle-buttons">
+                                <button type="button" class="toggle-btn active" data-filter="class" data-value="all">All</button>
+                                <button type="button" class="toggle-btn" data-filter="class" data-value="1">1</button>
+                                <button type="button" class="toggle-btn" data-filter="class" data-value="2">2</button>
+                                <button type="button" class="toggle-btn" data-filter="class" data-value="3">3</button>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <span class="filter-label">Role:</span>
+                            <div class="toggle-buttons">
+                                <button type="button" class="toggle-btn active" data-filter="role" data-value="all">All</button>
+                                <button type="button" class="toggle-btn toggle-jedi" data-filter="role" data-value="JEDI">JEDI</button>
+                                <button type="button" class="toggle-btn toggle-sith" data-filter="role" data-value="SITH">SITH</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="teams-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-number">Team #</th>
+                                    <th class="col-name">Team Name</th>
+                                    <th class="col-class">Class</th>
+                                    <th class="col-role">Role</th>
+                                    <th class="col-score">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teams-table-body">
+                                <!-- Team rows will be inserted here -->
+                                <tr class="empty-row">
+                                    <td colspan="5">No teams added yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </main>
 
@@ -46,9 +150,258 @@
     <!-- Page Script -->
     <script type="module">
         import { protectPage, getUsername, clearSession } from "./js/utils.js";
+        import { addTeam, checkTeamNameExists, subscribeToTeams, getAllTeams } from "./js/teams.js";
         
-        // Protect this page - only ADMIN role can access
-        document.addEventListener("DOMContentLoaded", () => {
+        // Debounce timer for name validation
+        let nameCheckTimer = null;
+        let isNameValid = false;
+        
+        // Filter state
+        let currentClassFilter = "all";
+        let currentRoleFilter = "all";
+        let allTeamsCache = [];
+        
+        // DOM Elements
+        const teamForm = document.getElementById("team-form");
+        const teamNumberInput = document.getElementById("team-number");
+        const teamNameInput = document.getElementById("team-name");
+        const teamClassSelect = document.getElementById("team-class");
+        const teamRoleSelect = document.getElementById("team-role");
+        const addTeamBtn = document.getElementById("add-team-btn");
+        const nameStatus = document.getElementById("name-status");
+        const formSuccessMessage = document.getElementById("form-success-message");
+        const formErrorMessage = document.getElementById("form-error-message");
+        const teamsTableBody = document.getElementById("teams-table-body");
+        const teamCount = document.getElementById("team-count");
+        
+        /**
+         * Update the next team number display
+         */
+        function updateNextTeamNumber(teams) {
+            if (teams.length === 0) {
+                teamNumberInput.value = "1";
+            } else {
+                const maxNumber = Math.max(...teams.map(t => t.teamNumber || 0));
+                teamNumberInput.value = maxNumber + 1;
+            }
+        }
+        
+        /**
+         * Filter teams based on current filter settings
+         */
+        function getFilteredTeams(teams) {
+            return teams.filter(team => {
+                // Filter by class
+                if (currentClassFilter !== "all" && team.class !== parseInt(currentClassFilter, 10)) {
+                    return false;
+                }
+                // Filter by role
+                if (currentRoleFilter !== "all" && team.role !== currentRoleFilter) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        /**
+         * Render teams in the table
+         */
+        function renderTeamsTable(teams) {
+            // Cache all teams for filtering
+            if (teams) {
+                allTeamsCache = teams;
+            }
+            
+            // Apply filters
+            const filteredTeams = getFilteredTeams(allTeamsCache);
+            
+            teamsTableBody.innerHTML = "";
+            teamCount.textContent = `(${filteredTeams.length}/${allTeamsCache.length})`;
+            
+            if (filteredTeams.length === 0) {
+                teamsTableBody.innerHTML = `
+                    <tr class="empty-row">
+                        <td colspan="5">${allTeamsCache.length === 0 ? 'No teams added yet.' : 'No teams match the current filters.'}</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            filteredTeams.forEach(team => {
+                const row = document.createElement("tr");
+                
+                // Add role-based styling
+                const roleClass = team.role === "JEDI" ? "role-jedi" : "role-sith";
+                
+                row.innerHTML = `
+                    <td class="col-number">${team.teamNumber}</td>
+                    <td class="col-name">${team.teamName}</td>
+                    <td class="col-class">${team.class}</td>
+                    <td class="col-role ${roleClass}">${team.role}</td>
+                    <td class="col-score">${team.score}</td>
+                `;
+                
+                teamsTableBody.appendChild(row);
+            });
+        }
+        
+        /**
+         * Handle filter toggle button clicks
+         */
+        function handleFilterClick(event) {
+            const btn = event.target.closest('.toggle-btn');
+            if (!btn) return;
+            
+            const filterType = btn.dataset.filter;
+            const filterValue = btn.dataset.value;
+            
+            // Update active state for buttons in the same group
+            const group = btn.closest('.toggle-buttons');
+            group.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Update filter state
+            if (filterType === 'class') {
+                currentClassFilter = filterValue;
+            } else if (filterType === 'role') {
+                currentRoleFilter = filterValue;
+            }
+            
+            // Re-render table with new filters
+            renderTeamsTable();
+        }
+        
+        /**
+         * Setup filter toggle buttons
+         */
+        function setupFilterButtons() {
+            const filterControls = document.querySelector('.filter-controls');
+            if (filterControls) {
+                filterControls.addEventListener('click', handleFilterClick);
+            }
+        }
+        
+        /**
+         * Validate team name in real-time
+         */
+        async function validateTeamName() {
+            const name = teamNameInput.value.trim();
+            
+            // Clear previous status
+            nameStatus.textContent = "";
+            nameStatus.className = "name-status";
+            
+            if (name === "") {
+                isNameValid = false;
+                addTeamBtn.disabled = true;
+                return;
+            }
+            
+            // Show checking status
+            nameStatus.textContent = "Checking...";
+            nameStatus.classList.add("checking");
+            
+            // Check if name exists
+            const exists = await checkTeamNameExists(name);
+            
+            if (exists) {
+                nameStatus.textContent = "✗ Name already taken";
+                nameStatus.className = "name-status invalid";
+                isNameValid = false;
+                addTeamBtn.disabled = true;
+            } else {
+                nameStatus.textContent = "✓ Name available";
+                nameStatus.className = "name-status valid";
+                isNameValid = true;
+                addTeamBtn.disabled = false;
+            }
+        }
+        
+        /**
+         * Handle team name input with debouncing
+         */
+        function handleNameInput() {
+            // Clear previous timer
+            if (nameCheckTimer) {
+                clearTimeout(nameCheckTimer);
+            }
+            
+            // Disable button while typing
+            isNameValid = false;
+            addTeamBtn.disabled = true;
+            
+            // Debounce the validation
+            nameCheckTimer = setTimeout(validateTeamName, 300);
+        }
+        
+        /**
+         * Show success message
+         */
+        function showSuccess(message) {
+            formSuccessMessage.textContent = message;
+            formSuccessMessage.classList.add("visible");
+            formErrorMessage.classList.remove("visible");
+            
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                formSuccessMessage.classList.remove("visible");
+            }, 3000);
+        }
+        
+        /**
+         * Show error message
+         */
+        function showError(message) {
+            formErrorMessage.textContent = message;
+            formErrorMessage.classList.add("visible");
+            formSuccessMessage.classList.remove("visible");
+        }
+        
+        /**
+         * Handle form submission
+         */
+        async function handleFormSubmit(event) {
+            event.preventDefault();
+            
+            if (!isNameValid) {
+                showError("Please enter a valid unique team name.");
+                return;
+            }
+            
+            // Disable button during submission
+            addTeamBtn.disabled = true;
+            addTeamBtn.textContent = "Adding...";
+            
+            const teamData = {
+                teamName: teamNameInput.value.trim(),
+                teamClass: teamClassSelect.value,
+                role: teamRoleSelect.value
+            };
+            
+            const result = await addTeam(teamData);
+            
+            if (result.success) {
+                showSuccess(`Team added successfully! (Team #${result.teamNumber})`);
+                
+                // Clear form
+                teamNameInput.value = "";
+                nameStatus.textContent = "";
+                nameStatus.className = "name-status";
+                isNameValid = false;
+                
+                // Update next team number will happen via onSnapshot
+            } else {
+                showError(result.error);
+            }
+            
+            addTeamBtn.disabled = !isNameValid;
+            addTeamBtn.textContent = "Add Team";
+        }
+        
+        /**
+         * Initialize admin page
+         */
+        function initAdminPage() {
             // Check page protection
             if (!protectPage("ADMIN")) {
                 return; // Will redirect to login
@@ -69,8 +422,30 @@
                 });
             }
             
+            // Setup team name validation
+            if (teamNameInput) {
+                teamNameInput.addEventListener("input", handleNameInput);
+            }
+            
+            // Setup form submission
+            if (teamForm) {
+                teamForm.addEventListener("submit", handleFormSubmit);
+            }
+            
+            // Setup filter buttons
+            setupFilterButtons();
+            
+            // Subscribe to team updates
+            subscribeToTeams((teams) => {
+                renderTeamsTable(teams);
+                updateNextTeamNumber(teams);
+            });
+            
             console.log("Admin dashboard initialized.");
-        });
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener("DOMContentLoaded", initAdminPage);
     </script>
 </body>
 </html>

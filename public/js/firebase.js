@@ -12,7 +12,10 @@ import {
     collection, 
     query, 
     where, 
-    getDocs 
+    getDocs,
+    addDoc,
+    onSnapshot,
+    orderBy
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase configuration
@@ -35,4 +38,4 @@ const db = getFirestore(app);
 console.log("Firebase initialized successfully.");
 
 // Export database and Firestore utilities
-export { db, collection, query, where, getDocs };
+export { db, collection, query, where, getDocs, addDoc, onSnapshot, orderBy };
